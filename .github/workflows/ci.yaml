@@ -1,6 +1,6 @@
 name: Continuous Integration (CI) Pipeline
 
-# This workflow is triggered whenever a Pull Request (PR) is opened,
+# TEST
 # synchronized (updated), or reopened, ensuring every change is validated.
 on:
   pull_request:
