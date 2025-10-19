@@ -46,7 +46,8 @@ jobs:
         run: npm run lint
 
       - name: 💅 Run Formatter (Prettier --write)
-        run: npm run prettier --write 
+        # FIX: Directly run the 'prettier --write' command using npx to ensure formatting fixes are applied.
+        run: npx prettier --write .
         
       - name: ✅ Run Tests (Jest)
         run: CI=true npm run test
