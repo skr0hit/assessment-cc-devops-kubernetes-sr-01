@@ -11,17 +11,21 @@ on:
 env:
   # Define the Node.js version to use, matching the Dockerfile requirement for consistency.
   NODE_VERSION: 15.x
+  # Define the working directory for all subsequent steps relative to the repository root
+  APP_DIR: codebase/rdicidr-0.1.0
 
 jobs:
   validate_codebase:
     # Use the 'ubuntu-latest' runner environment for execution
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }} # <-- CRITICAL FIX: All 'run' commands will execute from this directory
+
     steps:
       - name: ⬇️ Checkout Repository
         uses: actions/checkout@v4
-        # Needed for the formatter step to commit changes, though we won't commit them here,
-        # it's often good practice if you wanted to push formatted code back.
         with:
           fetch-depth: 0
 
@@ -30,20 +34,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm' # Cache the node_modules directory for faster installs
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json # Point cache to the correct lock file location
 
       - name: 📦 Install Dependencies (Requires package-lock.json to be present)
         # Use 'npm ci' for clean, faster, and reliable installations in CI environments
-        # NOTE: This step failed because package-lock.json was missing. Please ensure it is committed.
         run: npm ci
 
       - name: 🧹 Run Linter (ESLint)
         # Checks code quality and standards
         run: npm run lint
 
-      - name: 💅 Run Formatter (Prettier --check)
-        # In CI, we usually check for formatting violations rather than writing changes back.
-        # However, the original prompt requested '--write', so we use it but add a warning.
-        # You may want to change this to 'npm run prettier --check'
+      - name: 💅 Run Formatter (Prettier --write)
+        # The prompt requested '--write'. In CI, prefer '--check'.
         run: npm run prettier --write 
         
       - name: ✅ Run Tests (Jest)
@@ -59,5 +61,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: web-build-files
-          path: build/ # Assumes 'npm run build' outputs to a 'build' directory
+          path: ${{ env.APP_DIR }}/build/ # Updated path to include the working directory
           retention-days: 1
