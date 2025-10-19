@@ -1,0 +1,64 @@
+name: Continuous Integration (CI) Pipeline
+
+# This workflow is triggered whenever a Pull Request (PR) is opened,
+# synchronized (updated), or reopened, ensuring every change is validated.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, master] # Adjust branch names if your default branch is different
+
+# Define environment variables used by the Jest test step
+env:
+  # Setting CI=true prevents Jest from running in watch mode, which is standard for CI/CD environments.
+  CI: true
+  # Define the Node.js version to use, matching the Dockerfile requirement for consistency.
+  NODE_VERSION: 15.x
+
+jobs:
+  validate_codebase:
+    # Use the 'ubuntu-latest' runner environment for execution
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+        # Needed for the formatter step to commit changes, though we won't commit them here,
+        # it's often good practice if you wanted to push formatted code back.
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm' # Cache the node_modules directory for faster installs
+
+      - name: 📦 Install Dependencies
+        # Use 'npm ci' for clean, faster, and reliable installations in CI environments
+        run: npm ci
+
+      - name: 🧹 Run Linter (ESLint)
+        # Checks code quality and standards
+        run: npm run lint
+
+      - name: 💅 Run Formatter (Prettier --write)
+        # Formats the code. We use '--check' in CI to ensure code IS formatted, 
+        # but the prompt requested '--write', which runs the formatting command.
+        # Note: In a true CI/CD pipeline, you typically use '--check' here.
+        run: npm run prettier --write 
+        
+      - name: ✅ Run Tests (Jest)
+        # Executes unit and integration tests
+        run: npm run test
+
+      - name: 🏗️ Build Application
+        # Creates the production-ready static assets
+        run: npm run build
+        
+      # Optional: Upload the build artifact for later use (e.g., in a CD pipeline)
+      - name: ⬆️ Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build-files
+          path: build/ # Assumes 'npm run build' outputs to a 'build' directory
+          retention-days: 1
